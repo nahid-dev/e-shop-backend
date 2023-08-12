@@ -57,6 +57,8 @@ async function run() {
     // ALL COLLECTION HERE =========>
     const productCollection = client.db("eShopServer").collection("products");
     const usersCollection = client.db("eShopServer").collection("users");
+    const cartCollection = client.db("eShopServer").collection("cart");
+    const checkoutCollection = client.db("eShopServer").collection("checkout");
 
     // =========> JWT API
     app.post("/jwt", (req, res) => {
@@ -80,18 +82,54 @@ async function run() {
       next();
     };
 
+    // =========== PRODUCT RELATED ALL API HERE ===============
     // ALL PRODUCTS API ==========>
     app.get("/products", async (req, res) => {
       const result = await productCollection.find().toArray();
       res.send(result);
     });
 
+    // SINGLE PRODUCT API ==========>
     app.get("/singleProduct/:id", async (req, res) => {
       const id = req.params.id;
       // console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await productCollection.findOne(query);
       res.send(result);
+    });
+
+    // ADD CART PRODUCT API ==========>
+    app.post("/addCart", async (req, res) => {
+      const product = req.body;
+      const email = product.email;
+      const existProduct = await cartCollection.findOne({
+        email,
+        productId: product.productId,
+      });
+
+      if (existProduct) {
+        res.status(400).send("Product already exists in your cart.");
+        return;
+      } else {
+        const result = await cartCollection.insertOne(product);
+        res.send(result);
+      }
+    });
+    // GET CART PRODUCT API ==========>
+    app.get("/myCart/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+
+      const cartItems = await cartCollection.find(query).toArray();
+      res.send(cartItems);
+    });
+
+    // DELETE CART PRODUCT API ==========>
+    app.delete("/deleteItem/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const deleteItem = await cartCollection.deleteOne(query);
+      res.send(deleteItem);
     });
 
     // =========== USER RELATED ALL API HERE ===============
@@ -128,6 +166,21 @@ async function run() {
       const user = await usersCollection.findOne(query);
       const result = { admin: user?.role === "admin" };
       res.send(result);
+    });
+
+    // =========== ALL CHECKOUT API HERE ===============
+    app.post("/checkout", async (req, res) => {
+      const checkoutData = req.body;
+      const id = checkoutData.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "checkout",
+        },
+      };
+      const updateProduct = await cartCollection.updateOne(filter, updatedDoc);
+      const insertData = await checkoutCollection.insertOne(checkoutData);
+      res.send({ updateProduct, insertData });
     });
 
     // Send a ping to confirm a successful connection
