@@ -34,6 +34,7 @@ async function run() {
 
     // ALL COLLECTION HERE =========>
     const productCollection = client.db("eShopServer").collection("products");
+    const usersCollection = client.db("eShopServer").collection("users");
 
     // ALL PRODUCTS API ==========>
     app.get("/products", async (req, res) => {
@@ -43,9 +44,21 @@ async function run() {
 
     app.get("/singleProduct/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      // console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await productCollection.findOne(query);
+      res.send(result);
+    });
+
+    // =========== USER ALL API HERE ===============
+    app.post("/newUser", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existUser = await usersCollection.findOne(query);
+      if (existUser) {
+        return res.send({ message: "User already have !!!" });
+      }
+      const result = await usersCollection.insertOne(user);
       res.send(result);
     });
 
