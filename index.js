@@ -1,12 +1,34 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 // MIDDLEWARE
 app.use(cors());
 app.use(express.json());
+
+// VERIFY JWT ================>
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized access" });
+  }
+  // ACCESS TOKEN ================>
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "Unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 // BASIC API
 app.get("/", (req, res) => {
@@ -36,6 +58,28 @@ async function run() {
     const productCollection = client.db("eShopServer").collection("products");
     const usersCollection = client.db("eShopServer").collection("users");
 
+    // =========> JWT API
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
+    // ==============> VERIFY ADMIN
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     // ALL PRODUCTS API ==========>
     app.get("/products", async (req, res) => {
       const result = await productCollection.find().toArray();
@@ -59,6 +103,19 @@ async function run() {
         return res.send({ message: "User already have !!!" });
       }
       const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // =========== ADMIN API HERE ===============
+    // CHECK ADMIN
+    app.get("/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        return res.send({ admin: false });
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
       res.send(result);
     });
 
