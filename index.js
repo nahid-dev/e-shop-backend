@@ -94,7 +94,7 @@ async function run() {
       res.send(result);
     });
 
-    // =========== USER ALL API HERE ===============
+    // =========== USER RELATED ALL API HERE ===============
     app.post("/newUser", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -104,6 +104,17 @@ async function run() {
       }
       const result = await usersCollection.insertOne(user);
       res.send(result);
+    });
+
+    app.patch("/verifyNumber", async (req, res) => {
+      const phoneNumber = req.body;
+      const filter = { number: phoneNumber.number };
+      const matchNumber = await usersCollection.findOne(filter);
+      if (!matchNumber) {
+        return res.send({ error: true, message: "Number not found" });
+      } else {
+        res.send(matchNumber);
+      }
     });
 
     // =========== ADMIN API HERE ===============
