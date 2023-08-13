@@ -183,6 +183,15 @@ async function run() {
       res.send({ updateProduct, insertData });
     });
 
+    // ORDER PRODUCT API ==========>
+    app.get("/orderDetails/:id", async (req, res) => {
+      const id = req.params.id;
+      // console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await checkoutCollection.findOne(query);
+      res.send(result);
+    });
+
     // =========== ALL OVERVIEW API HERE ===============
     app.get("/totalCustomer", async (req, res) => {
       const totalCustomer = await usersCollection.find().toArray();
