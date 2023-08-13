@@ -183,6 +183,22 @@ async function run() {
       res.send({ updateProduct, insertData });
     });
 
+    // =========== ALL OVERVIEW API HERE ===============
+    app.get("/totalCustomer", async (req, res) => {
+      const totalCustomer = await usersCollection.find().toArray();
+      res.send(totalCustomer);
+    });
+
+    app.get("/totalProduct", async (req, res) => {
+      const totalProduct = await productCollection.find().toArray();
+      res.send(totalProduct);
+    });
+
+    app.get("/totalOrder", async (req, res) => {
+      const totalOrder = await checkoutCollection.find().toArray();
+      res.send(totalOrder);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
